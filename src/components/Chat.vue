@@ -3,11 +3,11 @@
         <h2 class="center teal-text">Ninja Chat</h2>
         <div class="card">
             <div class="card-content">
-                <ul class="messages">
-                    <li>
-                        <span class="teal-text">Name</span>
-                        <span class="grey-text text-darken-3">message</span>
-                        <span class="grey-text time">time</span>
+                <ul class="messages" v-chat-scroll>
+                    <li v-for="message in messages" :key="message.id">
+                        <span class="teal-text"> {{ message.name }}</span>
+                        <span class="grey-text text-darken-3">{{ message.content }}</span>
+                        <span class="grey-text time">{{ message.timestamp }}</span>
                     </li>
                 </ul>
             </div>
@@ -20,6 +20,8 @@
 
 <script>
 import NewMessage from '@/components/NewMessage'
+import db from '@/firebase/init'
+import moment from 'moment'
 
 export default {
     name: 'Chat',
@@ -30,7 +32,26 @@ export default {
 
     data() {
         return {
+            messages: [] // storing messages from users
         }
+    },
+    created() {
+        let ref = db.collection('messages').orderBy('timestamp') // ordering by timestamp
+        ref.onSnapshot(snapshot =>  {   //this method listens to changes to whatever changes in "messages" collection
+            snapshot.docChanges().forEach(change => {
+                // everytime we see there is a change with a type of "added"
+                if(change.type == 'added') {
+                    let doc = change.doc // reffering to that individual document
+                    // we pushing that document into 'messages' array property
+                    this.messages.push({
+                        id: doc.id,
+                        name: doc.data().name,
+                        content: doc.data().content,
+                        timestamp: moment(doc.data().timestamp).format('lll') // formatting time with "moment"
+                    })
+                }
+            })
+        })
     }
 }
 </script>
@@ -46,6 +67,11 @@ export default {
 }
 .chat .time {
     display: block;
-    font-size: 1.2em;
+    font-size: 0.8em;
 }
+.messages {
+    max-height: 300px;
+    overflow: auto;
+}
+
 </style>
